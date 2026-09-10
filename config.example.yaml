@@ -1,0 +1,35 @@
+# config.example.yaml
+# Copy this file to config.yaml and fill in your own values.
+# config.yaml is gitignored — never commit it, it will contain your
+# personal file paths and usernames.
+
+hotkey: f8
+
+ollama:
+  model: qwen2.5:14b
+  url: http://localhost:11434/api/chat
+  # timeout in seconds for a single tool-routing request
+  timeout: 30
+
+# One entry per application you want the assistant to be able to open/close.
+# open_path: full path to the .exe or .lnk that launches the app.
+#   - Use a Start Menu .lnk shortcut if the app's real .exe lives in a
+#     version-numbered folder that changes on update (e.g. Discord).
+#   - Use a direct .exe path if the install location is stable (e.g. Chrome).
+# close_process: the exact Windows process image name, as shown in
+#   Task Manager > Details tab, while the app is running. Case doesn't
+#   matter but the base name must match exactly.
+apps:
+  chrome:
+    open_path: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+    close_process: "chrome.exe"
+  discord:
+    open_path: "C:\\Users\\YOUR_USERNAME\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Discord.lnk"
+    close_process: "Discord.exe"
+  spotify:
+    open_path: "C:\\Users\\YOUR_USERNAME\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Spotify.lnk"
+    close_process: "Spotify.exe"
+  # Add more apps the same way, e.g.:
+  # valorant:
+  #   open_path: "C:\\Riot Games\\Riot Client\\RiotClientServices.exe"
+  #   close_process: "VALORANT-Win64-Shipping.exe"
