@@ -1,17 +1,10 @@
-"""tools.py — Phase 0 tool implementations.
+# tools.py
+"""tools.py — Phase 1 tool implementations, config-driven.
 
-Each function returns a structured dict: {"success": bool, "message": str}.
-core.py should use "message" for whatever it reports back to the user
-(console print now, TTS later) — never invent a success message yourself
-in core.py. These functions are the only place that knows what actually
-happened.
-
-KNOWN LIMITATION (Phase 0 only): application names are resolved via a
-small hardcoded lookup below. This violates the "no hardcoded paths"
-principle from the original spec deliberately, as a temporary shortcut —
-Phase 1 replaces this with a config-driven app registry (detected/
-user-configured executable paths). Log this as a known debt, not
-something to quietly forget.
+open_application now supports optional launch_args (e.g. Steam's
+-applaunch <appid>). Apps with no args behave exactly as before —
+os.startfile for the plain case, subprocess.Popen only when args exist,
+since os.startfile can't pass command-line arguments at all.
 """
 
 import subprocess
@@ -19,53 +12,79 @@ import webbrowser
 import urllib.parse
 import os
 
-# Phase 0 only — replace with config-driven registry in Phase 1.
-# For open_application — full launchable path (.exe or .lnk)
-OPEN_PATHS = {
-    "chrome": r"C:\Program Files\Google\Chrome\Application\chrome.exe",
-    "google chrome": r"C:\Program Files\Google\Chrome\Application\chrome.exe",
-    "discord": r"C:\Users\easas\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Discord.lnk",
-    "spotify": r"C:\Users\easas\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Spotify.lnk",
-}
+_cfg = None
 
-# For close_application — actual Windows process image name (check Task
-# Manager > Details tab while each app is running to confirm these)
-CLOSE_PROCESS_NAMES = {
-    "chrome": "chrome.exe",
-    "google chrome": "chrome.exe",
-    "discord": "Discord.exe",
-    "spotify": "Spotify.exe",
-}
+
+def configure(cfg):
+    global _cfg
+    _cfg = cfg
 
 
 def open_application(application: str) -> dict:
-    key = application.strip().lower()
-    target = OPEN_PATHS.get(key, key)
+    if _cfg is None:
+        return {"success": False, "message": "Tools not configured — call configure(cfg) at startup."}
+
+    target = _cfg.app_open_path(application)
+    if target is None:
+        return {
+            "success": False,
+            "message": f"{application} isn't in my configured app list. Add it to config.yaml.",
+        }
+
+    args = _cfg.app_open_args(application)
+
     try:
-        os.startfile(target)
+        if args:
+            # Needs real arguments (e.g. Steam's -applaunch) — os.startfile
+            # can't pass these, so use Popen. Requires a real .exe path,
+            # not a .lnk shortcut (Popen won't resolve shortcuts).
+            subprocess.Popen([target, *args])
+        else:
+            # Plain launch, no arguments — os.startfile handles both .exe
+            # and .lnk correctly, so keep using it for the simple case.
+            os.startfile(target)
     except FileNotFoundError:
-        return {"success": False, "message": f"Couldn't find or open {application} on this computer."}
+        return {
+            "success": False,
+            "message": f"Couldn't find {application} at its configured path — check config.yaml.",
+        }
     except Exception as e:
         return {"success": False, "message": f"Failed to open {application}: {e}"}
+
     return {"success": True, "message": f"Opened {application}."}
 
 
 def close_application(application: str) -> dict:
-    key = application.strip().lower()
-    process_name = CLOSE_PROCESS_NAMES.get(key, f"{application}.exe")
+    if _cfg is None:
+        return {"success": False, "message": "Tools not configured — call configure(cfg) at startup."}
+
+    process_name = _cfg.app_close_process(application)
+    if process_name is None:
+        return {
+            "success": False,
+            "message": f"{application} isn't in my configured app list. Add it to config.yaml.",
+        }
+
     try:
         result = subprocess.run(
             ["taskkill", "/IM", process_name, "/F"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
     except Exception as e:
         return {"success": False, "message": f"Failed to close {application}: {e}"}
+
     if result.returncode != 0:
-        return {"success": False, "message": f"{application} doesn't appear to be running."}
+        return {
+            "success": False,
+            "message": f"{application} doesn't appear to be running.",
+        }
+
     return {"success": True, "message": f"Closed {application}."}
 
+
 def browser_search(query: str) -> dict:
-    """Open a Google search for the given query in the default browser."""
     try:
         encoded = urllib.parse.quote_plus(query)
         webbrowser.open(f"https://www.google.com/search?q={encoded}")
@@ -76,16 +95,9 @@ def browser_search(query: str) -> dict:
 
 
 def unsupported_request(reason: str) -> dict:
-    """Called by the LLM when no other tool fits the request.
-
-    Always returns success=False — this represents the assistant
-    correctly declining, not an error, but core.py should still treat
-    it as "no action was taken" for logging/response purposes.
-    """
     return {"success": False, "message": f"I can't do that yet: {reason}"}
 
 
-# Dispatch table — core.py looks up the LLM's chosen tool name here.
 TOOL_REGISTRY = {
     "open_application": open_application,
     "close_application": close_application,

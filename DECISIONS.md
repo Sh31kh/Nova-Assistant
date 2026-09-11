@@ -258,3 +258,67 @@ Confirms the "explicit fallback, never silent" design is pulling real
 weight, not just satisfying a test script. Also confirms README/user-
 facing docs will need to clearly state current capabilities up front —
 a first-time user's expectations reasonably exceeded what exists.
+
+## 2026-09-11: Config-driven application aliases and name resolution
+
+Application names are resolved through a configurable alias layer rather than
+hardcoding alternative names into the tools or LLM prompt. The LLM passes the
+application name as the user said it, and config.py resolves aliases to the
+canonical application key before looking up paths/process names.
+
+This keeps the LLM responsible for intent rather than local machine-specific
+details. It also means aliases can be changed or added in config.yaml
+without modifying Python code.
+
+The resolver is case-insensitive, so VAL, Val and val all resolve to
+valorant through the same val: valorant entry. Known speech-to-text
+misrecognitions can also be handled here; for example, valve is configured
+as an alias for valorant because Whisper occasionally transcribes spoken
+"VAL" that way.
+
+## 2026-09-11: Steam application launch and launch_args
+
+Applications can optionally define launch_args in config.yaml. This was
+introduced primarily for Steam games such as Bloons TD 6, where the Steam
+executable is the launcher but the desired application is identified by its
+Steam App ID.
+
+For example, Bloons TD 6 uses Steam with -applaunch 960090 rather than
+trying to launch the game executable directly. This keeps the configuration
+portable and avoids hardcoding Steam-specific behaviour into the general
+application tool.
+
+open_application therefore uses two launch paths. Applications without
+arguments continue to use os.startfile, which preserves the simple behaviour
+already working for .exe and .lnk files. Applications with launch_args
+use subprocess.Popen, because os.startfile cannot pass command-line
+arguments.
+
+This split was chosen deliberately rather than replacing os.startfile
+everywhere: the existing simple case stays simple, while applications that
+need arguments get the additional functionality.
+
+## 2026-09-11: Steam AutoLogin investigation — use Option A
+
+Investigated whether Nova should handle Steam's login state automatically
+when launching Steam games. The decision was to use Option A: rely on Steam
+being already logged in and let Steam handle its own authentication/session
+state.
+
+Nova should launch applications, not attempt to manage account credentials,
+passwords, authentication prompts or Steam's login process itself.
+
+This was chosen because Steam already provides the correct mechanism for
+maintaining its login session, while having Nova automate authentication would
+add unnecessary security and reliability risks. It would also couple Nova to
+Steam's internal login behaviour and potentially require handling credentials
+that Nova has no reason to store or access.
+
+The resulting design is intentionally simple: if Steam is already logged in,
+Nova can launch the configured Steam application normally. If Steam requires
+the user to log in, that remains a Steam/user interaction rather than a Nova
+responsibility.
+
+This keeps the integration within Nova's intended scope while avoiding
+credential handling and unnecessary automation around a third-party
+authentication system.

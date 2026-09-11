@@ -1,12 +1,16 @@
 # core.py
 """Phase 0 entry point: hotkey -> record -> transcribe -> route -> execute."""
 
+from config import load_config
 from audio import record_while_held
 from stt import transcribe
 from llm import get_tool_call
-from tools import TOOL_REGISTRY
+from tools import TOOL_REGISTRY, configure as configure_tools
 import keyboard
 import os
+
+cfg = load_config()
+configure_tools(cfg)
 
 def _handle_quit():
     print("\nExiting.")

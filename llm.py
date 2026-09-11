@@ -11,7 +11,14 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "open_application",
-            "description": "Open a named application on the user's computer",
+            "description": (
+                "Open an application on the user's computer. "
+                "The application argument may be the application's normal name "
+                "or a user-configured alias such as 'VAL'. "
+                "Pass the application name or alias exactly as the user said it. "
+                "Do not refuse because you do not know the application's Windows "
+                "executable name or path; Nova resolves configured names and aliases."
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {"application": {"type": "string"}},
@@ -23,7 +30,13 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "close_application",
-            "description": "Close a named application on the user's computer",
+            "description": (
+                "Close an application on the user's computer. "
+                "The application argument may be the application's normal name "
+                "or a user-configured alias such as 'VAL'. "
+                "Pass the application name or alias exactly as the user said it. "
+                "Nova resolves configured names and aliases."
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {"application": {"type": "string"}},
@@ -58,10 +71,15 @@ TOOLS = [
 ]
 
 SYSTEM_PROMPT = (
-    "You control tools on the user's computer. Only call a tool if it "
-    "exactly matches what the user asked for. If no available tool can "
-    "perform the requested action, call the unsupported_request tool "
-    "with a brief explanation of why the request is unsupported. "
+    "You control tools on the user's computer. "
+    "Choose the tool that best matches the user's requested action. "
+    "For application actions, pass the application name exactly as "
+    "the user said it, including aliases or abbreviations. "
+    "Nova will resolve configured aliases and application paths. "
+    "Do not refuse an application request because you do not know "
+    "the Windows executable name or path. "
+    "If no available tool can perform the requested action, call "
+    "unsupported_request with a brief explanation. "
     "Never substitute one tool for a different action. "
     "If the user's request contains multiple separate actions, only "
     "handle the first one and ignore the rest."

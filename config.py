@@ -1,9 +1,5 @@
-"""config.py — loads config.yaml once at startup.
-
-Deliberately simple for Phase 1: load once, pass the resulting object
-around. No hot-reloading, no file watching, no schema versioning — none
-of that is needed yet for a single-user, single-machine setup.
-"""
+# config.py
+"""config.py — loads config.yaml once at startup."""
 
 from pathlib import Path
 import sys
@@ -14,13 +10,15 @@ EXAMPLE_PATH = Path(__file__).parent / "config.example.yaml"
 
 
 class Config:
-    """Thin wrapper around the loaded YAML dict with a couple of
-    convenience accessors. Deliberately not a big abstraction — just
-    enough to avoid repeating config["apps"][name]["open_path"] everywhere.
-    """
-
     def __init__(self, data: dict):
         self._data = data
+        self._aliases = {k.lower(): v.lower() for k, v in data.get("aliases", {}).items()}
+
+    def _resolve(self, name: str) -> str:
+        """Resolve an alias to its canonical app key, or return the name
+        unchanged if it's not an alias."""
+        key = name.strip().lower()
+        return self._aliases.get(key, key)
 
     @property
     def hotkey(self) -> str:
@@ -39,11 +37,17 @@ class Config:
         return self._data["ollama"]["timeout"]
 
     def app_open_path(self, name: str) -> str | None:
-        app = self._data.get("apps", {}).get(name.lower())
+        app = self._data.get("apps", {}).get(self._resolve(name))
         return app["open_path"] if app else None
 
+    def app_open_args(self, name: str) -> list[str]:
+        app = self._data.get("apps", {}).get(self._resolve(name))
+        if not app:
+            return []
+        return app.get("launch_args", [])
+
     def app_close_process(self, name: str) -> str | None:
-        app = self._data.get("apps", {}).get(name.lower())
+        app = self._data.get("apps", {}).get(self._resolve(name))
         return app["close_process"] if app else None
 
 
