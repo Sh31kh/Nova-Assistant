@@ -97,10 +97,29 @@ def browser_search(query: str) -> dict:
 def unsupported_request(reason: str) -> dict:
     return {"success": False, "message": f"I can't do that yet: {reason}"}
 
+def browser_open_site(site: str) -> dict:
+    if _cfg is None:
+        return {"success": False, "message": "Tools not configured — call configure(cfg) at startup."}
+
+    url = _cfg.site_url(site)
+    if url is None:
+        return {
+            "success": False,
+            "message": f"{site} isn't in my configured sites. Add it to config.yaml, or I can search for it instead.",
+        }
+
+    try:
+        webbrowser.open(url)
+    except Exception as e:
+        return {"success": False, "message": f"Failed to open {site}: {e}"}
+
+    return {"success": True, "message": f"Opened {site}."}
+
 
 TOOL_REGISTRY = {
     "open_application": open_application,
     "close_application": close_application,
     "browser_search": browser_search,
+    "browser_open_site": browser_open_site,
     "unsupported_request": unsupported_request,
 }

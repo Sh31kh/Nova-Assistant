@@ -68,6 +68,21 @@ TOOLS = [
             },
         },
     },
+
+    {
+    "type": "function",
+    "function": {
+        "name": "browser_open_site",
+        "description": "Open a specific known website directly (e.g. Google Sheets, YouTube, Netflix) rather than searching for it. Use this when the user names a specific site or service they want to go to, not when they want to search for something.",
+        "parameters": {
+            "type": "object",
+            "properties": {"site": {"type": "string"}},
+            "required": ["site"],
+        },
+    },
+},
+
+
 ]
 
 SYSTEM_PROMPT = (
@@ -83,6 +98,7 @@ SYSTEM_PROMPT = (
     "Never substitute one tool for a different action. "
     "If the user's request contains multiple separate actions, only "
     "handle the first one and ignore the rest."
+    "Use browser_open_site when the user names a specific website or service to open directly. Use browser_search when they want to search for something."
 )
 
 

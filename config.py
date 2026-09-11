@@ -15,10 +15,17 @@ class Config:
         self._aliases = {k.lower(): v.lower() for k, v in data.get("aliases", {}).items()}
 
     def _resolve(self, name: str) -> str:
-        """Resolve an alias to its canonical app key, or return the name
-        unchanged if it's not an alias."""
+        """Resolve an alias to its canonical app/site key, or return the
+        name unchanged if it's not an alias. Also normalizes spaces to
+        underscores as a fallback, since config keys use underscores but
+        natural speech uses spaces — this covers the common case (e.g.
+        "google sheets" -> "google_sheets") without needing an explicit
+        alias for every multi-word key."""
         key = name.strip().lower()
-        return self._aliases.get(key, key)
+        if key in self._aliases:
+            return self._aliases[key]
+        normalized = key.replace(" ", "_")
+        return self._aliases.get(normalized, normalized)
 
     @property
     def hotkey(self) -> str:
@@ -49,6 +56,10 @@ class Config:
     def app_close_process(self, name: str) -> str | None:
         app = self._data.get("apps", {}).get(self._resolve(name))
         return app["close_process"] if app else None
+    
+    def site_url(self, name: str) -> str | None:
+        site = self._data.get("sites", {}).get(self._resolve(name))
+        return site["url"] if site else None
 
 
 def load_config() -> Config:
