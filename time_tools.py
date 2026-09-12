@@ -13,6 +13,7 @@ in practice.
 """
 
 from datetime import datetime
+from num2words import num2words
 
 
 def _ordinal(n: int) -> str:
@@ -23,16 +24,39 @@ def _ordinal(n: int) -> str:
     return f"{n}{suffix}"
 
 
+def _speakable_time(dt: datetime) -> str:
+    """Fully spell out the time in words — Piper reads any colon-separated
+    or leading-zero numeric time digit-by-digit, so we avoid handing it
+    numeric time formats at all. Hyphens from num2words are replaced with
+    spaces. Midnight gets its conventional spoken name; all other
+    on-the-hour times are spoken as '<hour> <AM/PM>' with no 'o'clock'."""
+    hour = int(dt.strftime("%I"))
+    minute = dt.minute
+    period = dt.strftime("%p")
+
+    if hour == 12 and minute == 0 and period == "AM":
+        return "midnight"
+
+    hour_word = num2words(hour).replace("-", " ")
+
+    if minute == 0:
+        return f"{hour_word} {period}"
+    elif minute < 10:
+        return f"{hour_word} oh {num2words(minute)} {period}"
+    else:
+        minute_word = num2words(minute).replace("-", " ")
+        return f"{hour_word} {minute_word} {period}"
+
+
 def get_time() -> str:
-    now = datetime.now().strftime("%I:%M %p").lstrip("0")
-    return f"It's {now}."
+    return f"It's {_speakable_time(datetime.now())}."
 
 
 def get_date_and_time() -> str:
     """Date requests return date + time together, per design."""
     now = datetime.now()
     date_str = now.strftime(f"the {_ordinal(now.day)} of %B, %Y")
-    time_str = now.strftime("%I:%M %p").lstrip("0")
+    time_str = _speakable_time(now)
     return f"It's {date_str}. The time is {time_str}."
 
 
@@ -46,9 +70,7 @@ def check_deterministic(text: str) -> str | None:
     the normal LLM tool-calling path.
 
     Order matters: check "date" before "time", since a date request
-    should return both, and we don't want "time" matching first on a
-    date query that happens to also... [it won't, but order is still
-    deliberate: most specific/combined case checked first]."""
+    should return both."""
     lowered = text.lower()
 
     if "date" in lowered:

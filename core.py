@@ -33,32 +33,32 @@ def handle_command():
 
     if not text:
         print(FALLBACK_MESSAGE)
-        speak(FALLBACK_MESSAGE)
+        speak(FALLBACK_MESSAGE, cfg)
         return
 
     # Deterministic bypass — skip the LLM entirely for trivial queries
     direct = check_deterministic(text)
     if direct is not None:
         print(direct)
-        speak(direct)
+        speak(direct, cfg)
         return
 
     call = get_tool_call(text, cfg)
     if call is None:
         print(FALLBACK_MESSAGE)
-        speak(FALLBACK_MESSAGE)
+        speak(FALLBACK_MESSAGE, cfg)
         return
 
     tool_fn = TOOL_REGISTRY.get(call["name"])
     if tool_fn is None:
         print(f"[core] LLM called unknown tool: {call['name']}")
         print(FALLBACK_MESSAGE)
-        speak(FALLBACK_MESSAGE)
+        speak(FALLBACK_MESSAGE, cfg)
         return
 
     result = tool_fn(**call["arguments"])
     print(result["message"])
-    speak(result["message"])
+    speak(result["message"], cfg)
 
 
 def main():

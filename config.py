@@ -60,7 +60,17 @@ class Config:
     def site_url(self, name: str) -> str | None:
         site = self._data.get("sites", {}).get(self._resolve(name))
         return site["url"] if site else None
+    @property
+    def tts_voice_model(self) -> str:
+        return self._data["tts"]["voice_model"]
 
+    @property
+    def tts_length_scale(self) -> float:
+        return self._data["tts"]["length_scale"]
+
+    @property
+    def tts_volume(self) -> float:
+        return self._data["tts"]["volume"]
 
 def load_config() -> Config:
     if not CONFIG_PATH.exists():

@@ -2,17 +2,21 @@
 
 from pathlib import Path
 import subprocess
+import numpy as np
 import sounddevice as sd
 
-VOICE_MODEL = Path(__file__).parent / "piper_voices" / "en_GB-northern_english_male-medium.onnx"
+VOICE_DIR = Path(__file__).parent / "piper_voices"
 
 
-def speak(text: str):
+def speak(text: str, cfg):
     if not text:
         return
 
+    voice_path = VOICE_DIR / cfg.tts_voice_model
+
     result = subprocess.run(
-        ["piper", "--model", str(VOICE_MODEL), "--output-raw", "--length-scale", "1.1"],
+        ["piper", "--model", str(voice_path),
+         "--output-raw", "--length-scale", str(cfg.tts_length_scale)],
         input=text.encode("utf-8"),
         capture_output=True,
     )
@@ -21,9 +25,8 @@ def speak(text: str):
         return
 
     # Piper's --output-raw is 16-bit PCM, 22050 Hz, mono
-    import numpy as np
     audio = np.frombuffer(result.stdout, dtype=np.int16)
-    audio = (audio * 0.35).astype(np.int16)
+    audio = (audio * cfg.tts_volume).astype(np.int16)
 
     sd.play(audio, samplerate=22050)
     sd.wait()
