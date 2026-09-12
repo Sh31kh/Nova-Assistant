@@ -413,3 +413,50 @@ statements and provide contextual assistance, such as discussing plans or
 suggesting ideas after the user mentions having a date. This is considered a
 future vision rather than part of the current command-routing scope and will
 not influence the present implementation.
+
+## 2026-09-12: Speakable time formatting for Piper TTS
+Problem: Piper reads numeric/colon time formats digit-by-digit
+("3:05 PM" -> "three zero five PM"), not as natural speech.
+Fix: _speakable_time() in time_tools.py fully spells out hour/minute in
+words via num2words, strips hyphens from compound numbers ("forty-five"
+-> "forty five", confirmed by ear to sound better), special-cases
+midnight ("twelve AM" -> "midnight"), and drops "o'clock" entirely from
+on-the-hour times ("three PM" not "three o'clock PM", including noon ->
+"twelve PM") for consistency with non-hour times.
+Separately, real time cost: hit a recurring issue where pasted "current
+file contents" (from the editor) didn't match what Get-Content showed
+was actually on disk — chased a "bug" for several rounds that was really
+an unsaved/stale edit, including a duplicate import and a leftover
+"o'clock" line that looked fixed in the editor but wasn't saved.
+New standing rule: always verify file state with `Get-Content <file>`
+immediately after saving, before retesting — not by re-reading the
+editor tab, and not by trusting a pasted "here's my file" as proof of
+disk state.
+
+## 2026-09-12: Piper voice quality — accepted trade-off, not a bug
+Piper (local, free, offline neural TTS) sounds noticeably more synthetic
+than commercial cloud TTS (ElevenLabs, Azure, Google Cloud) due to model
+size/training data, not misconfiguration. Accepted for now, consistent
+with the local/free/private choice already made for the LLM (Ollama).
+Revisit only if voice quality becomes a real blocker — options then:
+a larger Piper voice tier, or a paid cloud TTS API for just this one
+component (same trade-off shape as the earlier Anthropic-vs-Ollama call).
+
+## 2026-09-12: Tray icon — three states, config-driven, with voice announcements
+Implemented idle/listening/disabled tray icon states via pystray, icon
+paths loaded from config.yaml (not hardcoded), swapped via a shared
+set_state() function called from core.py around the actual listening
+window. Toggle Enable/Disable announces via TTS ("Nova is back online" /
+"Nova is disabled for now").
+Bug found and fixed: initial enabled-check happened after record_until_
+release's blocking wait, meaning disable had no effect until the *next*
+press. Fixed by restructuring handle_command() to check state.enabled
+immediately after wait_for_press(), before entering the recording call.
+Bug found and fixed: Windows key-repeat caused wait_for_press() to fire
+repeatedly while a key was held and Nova was disabled (previously
+absorbed harmlessly by record_until_release's own release-wait). Fixed
+by explicitly waiting for physical key release in the disabled branch
+too, mirroring the pattern already used for the enabled path.
+Note: speak() blocking the tray callback thread during toggle
+announcements incidentally prevents any rapid-toggle race condition —
+verified via manual rapid-click testing, no fix needed.

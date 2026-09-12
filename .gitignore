@@ -33,3 +33,5 @@ Thumbs.db
 piper_voices/
 *.onnx
 *.onnx.json
+# nova logs
+nova.log*

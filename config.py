@@ -71,6 +71,17 @@ class Config:
     @property
     def tts_volume(self) -> float:
         return self._data["tts"]["volume"]
+    @property
+    def tray_icon_idle(self) -> str:
+        return self._data["tray"]["icon_idle"]
+
+    @property
+    def tray_icon_listening(self) -> str:
+        return self._data["tray"]["icon_listening"]
+
+    @property
+    def tray_icon_disabled(self) -> str:
+        return self._data["tray"]["icon_disabled"]
 
 def load_config() -> Config:
     if not CONFIG_PATH.exists():

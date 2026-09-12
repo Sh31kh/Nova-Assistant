@@ -5,15 +5,16 @@ import sounddevice as sd
 import numpy as np
 import keyboard
 
-SAMPLE_RATE = 16000  # faster-whisper expects 16kHz mono
-HOTKEY = "f8"
+SAMPLE_RATE = 16000
 
 
-def record_while_held(hotkey: str = HOTKEY) -> np.ndarray:
-    """Blocks until hotkey is pressed, records until released, returns audio."""
-    print(f"Hold {hotkey.upper()} to talk...")
-    keyboard.wait(hotkey)  # blocks until pressed
+def wait_for_press(hotkey: str):
+    """Blocks until the hotkey is pressed. Nothing recorded yet."""
+    keyboard.wait(hotkey)
 
+
+def record_until_release(hotkey: str) -> np.ndarray:
+    """Assumes the hotkey is currently held. Records until released."""
     print("Listening...")
     frames = []
 
@@ -25,7 +26,7 @@ def record_while_held(hotkey: str = HOTKEY) -> np.ndarray:
     )
     with stream:
         while keyboard.is_pressed(hotkey):
-            sd.sleep(50)  # poll every 50ms rather than busy-waiting
+            sd.sleep(50)
 
     print("Stopped.")
 
