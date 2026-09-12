@@ -322,3 +322,94 @@ responsibility.
 This keeps the integration within Nova's intended scope while avoiding
 credential handling and unnecessary automation around a third-party
 authentication system.
+
+## 2026-09-11: Latency (1-3s response time) — deliberately deferred
+Observed but not optimized. Reasoning: comparable to commercial voice
+assistants for non-trivial responses; current reliability (~1-in-5
+error rate on trivial commands, from earlier testing) is a bigger
+usability problem than speed. Revisit if: daily use makes the wait
+genuinely annoying in practice, TTS addition stacks meaningfully more
+delay on top, or a demo/other-user scenario specifically needs
+"feels instant." Likely levers when the time comes: keep_alive tuning,
+smaller/quantized model, streaming the response.
+
+## 2026-09-12: TTS voice selection — use Piper voice models
+
+Investigated options for changing Nova's TTS voice and whether downloadable
+"voice packs" could be used.
+
+Windows SAPI voices were considered as the simplest option, since they are
+already available through Windows and can be selected programmatically.
+However, SAPI voices generally have a more robotic sound and do not provide
+the quality or variety desired for Nova.
+
+Piper was selected as the preferred TTS engine. Piper is a free, local and
+offline neural TTS engine that supports downloadable voice models for
+different languages and accents. Each voice is provided as a model that Nova
+can load locally, making it possible to change Nova's voice without relying
+on a cloud service or sending speech data externally.
+
+This provides the closest legitimate equivalent to a downloadable "voice
+pack" system: users can choose a supported Piper voice model and configure
+Nova to use it.
+
+Cloud voice-cloning services and unofficial celebrity/character voice packs
+were not selected. They would introduce unnecessary cloud dependencies,
+potential costs and potential privacy, licensing and consent issues. Nova
+should prefer legitimate, locally hosted voice models rather than
+impersonating real people.
+
+The existing `speak(text)` interface is retained. The TTS engine is an
+implementation detail of `tts.py`, meaning `core.py` does not need to know
+whether speech is produced by SAPI, Piper or another future engine.
+
+A full provider abstraction is intentionally deferred until there is a
+second concrete TTS implementation that requires runtime switching. For now,
+Piper is the chosen local TTS implementation and can be replaced internally
+without changing the rest of Nova's architecture.
+
+## 2026-09-12: Deterministic date, time and day commands — bypass the LLM
+
+Date, time and day queries will be handled before the LLM rather than being
+sent through Ollama.
+
+These commands are deterministic and require no language-model reasoning.
+Handling them directly allows Nova to respond faster and avoids unnecessary
+LLM latency. This also follows the project's design principle that trivial
+deterministic commands should not use the LLM when a local, reliable
+implementation is available.
+
+The pre-LLM router will identify requests for:
+
+* The current time
+* The current date
+* The current day
+* Combined date and time when appropriate
+
+The default date format will follow the British convention of
+**day/month/year**. When asking for the date, Nova should respond naturally
+using the full date, for example "the 11th of September, 2026", rather than
+using an American month/day/year format.
+
+When the user asks for the date, the current time should also be included by
+default. The time can still be requested independently when the user only
+wants the current time.
+
+The day can be requested independently. Separate commands for the current
+month or current year are not considered necessary at this stage, as they do
+not represent realistic expected usage for Nova.
+
+A known limitation of keyword-based pre-LLM routing is that it has less
+contextual understanding than the LLM and could theoretically trigger on
+phrases containing words such as "date" or "day" that are not requests for
+the current date or day. This is accepted as a reasonable trade-off because
+Nova is intended primarily for direct voice commands, where these phrases
+would normally be unambiguous in practice. The router should not be
+over-engineered to solve hypothetical conversational use cases outside the
+current scope.
+
+Future conversational functionality may allow Nova to understand broader
+statements and provide contextual assistance, such as discussing plans or
+suggesting ideas after the user mentions having a date. This is considered a
+future vision rather than part of the current command-routing scope and will
+not influence the present implementation.

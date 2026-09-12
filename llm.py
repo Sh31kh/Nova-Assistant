@@ -1,10 +1,7 @@
 # llm.py
-"""Ollama tool-calling wrapper — the exact config you already validated."""
+"""Ollama tool-calling wrapper — config-driven, not hardcoded."""
 
 import requests
-
-MODEL = "qwen2.5:14b"
-OLLAMA_URL = "http://localhost:11434/api/chat"
 
 TOOLS = [
     {
@@ -59,6 +56,23 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "browser_open_site",
+            "description": (
+                "Open a specific known website directly (e.g. Google Sheets, "
+                "YouTube, Netflix) rather than searching for it. Use this when "
+                "the user names a specific site or service they want to go to, "
+                "not when they want to search for something."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {"site": {"type": "string"}},
+                "required": ["site"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "unsupported_request",
             "description": "Use when the user's request cannot be performed by any available tool",
             "parameters": {
@@ -68,21 +82,6 @@ TOOLS = [
             },
         },
     },
-
-    {
-    "type": "function",
-    "function": {
-        "name": "browser_open_site",
-        "description": "Open a specific known website directly (e.g. Google Sheets, YouTube, Netflix) rather than searching for it. Use this when the user names a specific site or service they want to go to, not when they want to search for something.",
-        "parameters": {
-            "type": "object",
-            "properties": {"site": {"type": "string"}},
-            "required": ["site"],
-        },
-    },
-},
-
-
 ]
 
 SYSTEM_PROMPT = (
@@ -93,24 +92,26 @@ SYSTEM_PROMPT = (
     "Nova will resolve configured aliases and application paths. "
     "Do not refuse an application request because you do not know "
     "the Windows executable name or path. "
+    "Use browser_open_site when the user names a specific website or "
+    "service to open directly. Use browser_search when they want to "
+    "search for something. "
     "If no available tool can perform the requested action, call "
     "unsupported_request with a brief explanation. "
     "Never substitute one tool for a different action. "
     "If the user's request contains multiple separate actions, only "
     "handle the first one and ignore the rest."
-    "Use browser_open_site when the user names a specific website or service to open directly. Use browser_search when they want to search for something."
 )
 
 
-def get_tool_call(transcript: str) -> dict | None:
+def get_tool_call(transcript: str, cfg) -> dict | None:
     """Returns the first tool call {"name": ..., "arguments": ...} or None
     if the model didn't produce a usable tool call. Content is intentionally
     discarded — proven untrustworthy in testing, never surface it."""
     try:
         resp = requests.post(
-            OLLAMA_URL,
+            cfg.ollama_url,
             json={
-                "model": MODEL,
+                "model": cfg.ollama_model,
                 "messages": [
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": transcript},
@@ -118,7 +119,7 @@ def get_tool_call(transcript: str) -> dict | None:
                 "tools": TOOLS,
                 "stream": False,
             },
-            timeout=30,
+            timeout=cfg.ollama_timeout,
         )
         resp.raise_for_status()
     except requests.RequestException as e:
@@ -128,7 +129,7 @@ def get_tool_call(transcript: str) -> dict | None:
     message = resp.json().get("message", {})
     calls = message.get("tool_calls")
     if not calls:
-        return None  # treated as failure by core.py — not silence
+        return None
 
     first = calls[0]["function"]
     return {"name": first["name"], "arguments": first.get("arguments", {})}

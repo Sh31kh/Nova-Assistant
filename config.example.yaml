@@ -19,6 +19,7 @@ ollama:
 # close_process: the exact Windows process image name, as shown in
 #   Task Manager > Details tab, while the app is running. Case doesn't
 #   matter but the base name must match exactly.
+
 apps:
   chrome:
     open_path: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"

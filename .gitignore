@@ -28,3 +28,8 @@ Thumbs.db
 
 # Voice recordings
 *.m4a
+
+# Piper voice models
+piper_voices/
+*.onnx
+*.onnx.json
