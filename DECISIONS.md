@@ -460,3 +460,49 @@ too, mirroring the pattern already used for the enabled path.
 Note: speak() blocking the tray callback thread during toggle
 announcements incidentally prevents any rapid-toggle race condition —
 verified via manual rapid-click testing, no fix needed.
+
+## 2026-09-13: Spotify integration via Spicetify bridge — Stage 1-3 complete
+Spotify Web API's playback endpoints (play/pause/skip/etc.) require the
+CONTROLLED account to have Premium — confirmed via Spotify's dashboard
+(Web API option greyed out on a Free account) before attempting any
+OAuth implementation. Free account cannot use these endpoints regardless
+of which account owns the developer app. Explicitly rejected any
+workaround that would misrepresent account entitlement.
+Alternative found: Spicetify (local Spotify desktop client modification)
+exposes a Player API (play/pause/next/back/etc.) that works on Free
+accounts, since it controls the local client directly rather than going
+through Spotify's cloud API. Confirmed via direct DevTools console test
+before building anything further.
+Architecture: Python WebSocket server (spotify_bridge.py) as a local-only
+(127.0.0.1) message broker between two registered clients — a Spicetify
+browser-context JS extension (nova_bridge.js) and Nova's Python side.
+First implementation attempt failed because the server acknowledged
+Nova's commands without forwarding them to the Spicetify client — fixed
+by explicit client registration (type: "register") and command/result
+forwarding between the two named connections.
+Verified end-to-end, both directions, by actually listening to Spotify
+pause and resume — not just trusting printed {"success": true} results,
+per the specific lesson from the failed first attempt (a successful-
+looking response does not prove the real-world action happened).
+Not yet integrated into tools.py/core.py — deliberately staged: prove
+the bridge works standalone first, integrate into Nova's actual command
+flow next.
+Open design question: core.py's main loop is fully synchronous
+(keyboard.wait, blocking audio recording); spotify_bridge.py is asyncio-
+based. Integration will need the WebSocket server run in a background
+thread (same pattern as tray.py) or another sync/async bridging approach
+— not yet decided.
+
+## 2026-09-13: Spotify tools — first adversarial test results
+12 phrasings tested across spotify_play/pause/next/previous:
+10/12 correct, 0 wrong-action mismatches (no verb-pair inversions).
+Failures: "Please Spotify" (Whisper mistranscription of "Pause Spotify",
+not an LLM routing failure — correctly declined since no sensible tool
+matches the mangled text). "Resume playing" incorrectly declined despite
+"unpause" (same intent) working correctly immediately after — model
+inconsistency on this specific phrasing, tool description already
+includes "resume". Not chasing further for now given: no dangerous
+mismatches occurred, common phrasings (play/pause/unpause/skip/back)
+all work, and this matches the already-documented non-zero baseline
+error rate for this model. Revisit only if it becomes a real annoyance
+in practice.

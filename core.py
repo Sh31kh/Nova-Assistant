@@ -8,6 +8,7 @@ from tts import speak
 from app_state import state
 from tray import run_tray, set_state
 from logger import logger
+from spotify_client import start_bridge_in_background
 import keyboard
 import threading
 import os
@@ -90,6 +91,8 @@ def main():
 
     tray_thread = threading.Thread(target=run_tray, args=(cfg,), daemon=True)
     tray_thread.start()
+
+    start_bridge_in_background()
 
     while True:
         try:

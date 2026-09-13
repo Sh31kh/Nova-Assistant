@@ -5,3 +5,4 @@ keyboard
 requests
 piper-tts==1.8.0
 num2words
+websockets

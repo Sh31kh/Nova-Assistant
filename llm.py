@@ -82,6 +82,40 @@ TOOLS = [
             },
         },
     },
+
+    {
+    "type": "function",
+    "function": {
+        "name": "spotify_play",
+        "description": "Resume/play music in Spotify",
+        "parameters": {"type": "object", "properties": {}, "required": []},
+    },
+
+    },
+        {
+        "type": "function",
+        "function": {
+            "name": "spotify_pause",
+            "description": "Pause music in Spotify",
+            "parameters": {"type": "object", "properties": {}, "required": []},
+     },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "spotify_next",
+            "description": "Skip to the next track in Spotify",
+            "parameters": {"type": "object", "properties": {}, "required": []},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "spotify_previous",
+            "description": "Go back to the previous track in Spotify",
+            "parameters": {"type": "object", "properties": {}, "required": []},
+        },
+    },
 ]
 
 SYSTEM_PROMPT = (

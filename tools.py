@@ -11,6 +11,7 @@ import subprocess
 import webbrowser
 import urllib.parse
 import os
+from spotify_client import send_command
 
 _cfg = None
 
@@ -116,10 +117,41 @@ def browser_open_site(site: str) -> dict:
     return {"success": True, "message": f"Opened {site}."}
 
 
+def spotify_play() -> dict:
+    result = send_command("play")
+    if not result.get("success"):
+        return {"success": False, "message": f"Couldn't play Spotify: {result.get('error', 'unknown error')}"}
+    return {"success": True, "message": "Playing."}
+
+
+def spotify_pause() -> dict:
+    result = send_command("pause")
+    if not result.get("success"):
+        return {"success": False, "message": f"Couldn't pause Spotify: {result.get('error', 'unknown error')}"}
+    return {"success": True, "message": "Paused."}
+
+
+def spotify_next() -> dict:
+    result = send_command("next")
+    if not result.get("success"):
+        return {"success": False, "message": f"Couldn't skip: {result.get('error', 'unknown error')}"}
+    return {"success": True, "message": "Skipped to next track."}
+
+
+def spotify_previous() -> dict:
+    result = send_command("previous")
+    if not result.get("success"):
+        return {"success": False, "message": f"Couldn't go back: {result.get('error', 'unknown error')}"}
+    return {"success": True, "message": "Went back a track."}
+
 TOOL_REGISTRY = {
     "open_application": open_application,
     "close_application": close_application,
     "browser_search": browser_search,
     "browser_open_site": browser_open_site,
+    "spotify_play": spotify_play,
+    "spotify_pause": spotify_pause,
+    "spotify_next": spotify_next,
+    "spotify_previous": spotify_previous,
     "unsupported_request": unsupported_request,
 }
